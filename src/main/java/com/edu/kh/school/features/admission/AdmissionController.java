@@ -6,6 +6,7 @@ import com.edu.kh.school.features.admission.dto.ReviewAdmissionRequest;
 import com.edu.kh.school.features.admission.dto.SubmitAdmissionRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -48,7 +49,7 @@ public class AdmissionController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) UUID academicYearId,
             @RequestParam(required = false) AdmissionStatus status,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         return admissionService.searchApplications(keyword, academicYearId, status, pageable);
     }

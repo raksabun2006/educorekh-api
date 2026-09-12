@@ -5,6 +5,7 @@ import com.edu.kh.school.features.subject.dto.SubjectResponse;
 import com.edu.kh.school.features.subject.dto.UpdateSubjectRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,7 @@ public class SubjectController {
     public Page<SubjectResponse> getAllSubjects(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) SubjectStatus status,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         if (keyword != null || status != null) {
             return subjectService.searchSubjects(keyword, status, pageable);

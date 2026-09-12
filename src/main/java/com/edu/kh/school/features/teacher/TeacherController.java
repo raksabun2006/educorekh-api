@@ -5,6 +5,7 @@ import com.edu.kh.school.features.teacher.dto.TeacherResponse;
 import com.edu.kh.school.features.teacher.dto.UpdateTeacherRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,7 @@ public class TeacherController {
     public Page<TeacherResponse> getAllTeachers(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) TeacherStatus status,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         if (keyword != null || status != null) {
             return teacherService.searchTeachers(keyword, status, pageable);

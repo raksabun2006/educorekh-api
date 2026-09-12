@@ -3,6 +3,7 @@ package com.edu.kh.school.features.attendance;
 import com.edu.kh.school.features.attendance.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -77,7 +78,7 @@ public class AttendanceController {
     @ResponseStatus(HttpStatus.OK)
     public Page<AttendanceResponse> getAttendanceByDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         return attendanceService.getAttendanceByDate(date, pageable);
     }

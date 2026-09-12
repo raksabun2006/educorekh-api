@@ -5,6 +5,7 @@ import com.edu.kh.school.features.academic.dto.CreateAcademicYearRequest;
 import com.edu.kh.school.features.academic.dto.UpdateAcademicYearRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,7 @@ public class AcademicYearController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public Page<AcademicYearResponse> getAllAcademicYears(Pageable pageable) {
+    public Page<AcademicYearResponse> getAllAcademicYears(@ParameterObject Pageable pageable) {
         return academicYearService.getAllAcademicYears(pageable);
     }
 

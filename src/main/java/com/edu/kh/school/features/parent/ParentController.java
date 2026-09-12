@@ -6,6 +6,7 @@ import com.edu.kh.school.features.parent.dto.UpdateParentRequest;
 import com.edu.kh.school.features.student.dto.StudentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -40,7 +41,7 @@ public class ParentController {
     public Page<ParentResponse> getAllParents(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) ParentStatus status,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         if (keyword != null || status != null) {
             return parentService.searchParents(keyword, status, pageable);

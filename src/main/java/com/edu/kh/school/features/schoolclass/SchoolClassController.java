@@ -5,6 +5,7 @@ import com.edu.kh.school.features.schoolclass.dto.CreateClassRequest;
 import com.edu.kh.school.features.schoolclass.dto.UpdateClassRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,7 @@ public class SchoolClassController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) UUID academicYearId,
             @RequestParam(required = false) ClassStatus status,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         if (keyword != null || academicYearId != null || status != null) {
             return schoolClassService.searchClasses(keyword, academicYearId, status, pageable);

@@ -5,6 +5,7 @@ import com.edu.kh.school.features.enrollment.dto.EnrollmentResponse;
 import com.edu.kh.school.features.enrollment.dto.TransferStudentRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -45,7 +46,7 @@ public class EnrollmentController {
     public Page<EnrollmentResponse> getClassEnrollments(
             @PathVariable UUID classId,
             @RequestParam(required = false) EnrollmentStatus status,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         return enrollmentService.getClassEnrollments(classId, status, pageable);
     }
