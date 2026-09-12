@@ -1,0 +1,7 @@
+package com.edu.kh.school.exception;
+
+public class DuplicateResourceException extends RuntimeException {
+    public DuplicateResourceException(String message) {
+        super(message);
+    }
+}

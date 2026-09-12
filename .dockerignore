@@ -1,0 +1,15 @@
+.gradle
+build
+.idea
+.git
+.gitignore
+.gitattributes
+*.iml
+out
+node_modules
+.env
+*.log
+HELP.md
+docker-compose.yaml
+application-local.yml
+application-local.properties
