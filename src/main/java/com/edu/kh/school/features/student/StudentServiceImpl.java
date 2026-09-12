@@ -12,13 +12,18 @@ import com.edu.kh.school.features.schoolclass.SchoolClassRepository;
 import com.edu.kh.school.features.student.dto.CreateStudentRequest;
 import com.edu.kh.school.features.student.dto.StudentResponse;
 import com.edu.kh.school.features.student.dto.UpdateStudentRequest;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -93,19 +98,39 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public Page<StudentResponse> getAllStudents(Pageable pageable) {
-        return studentRepository.findAll(pageable)
-                .map(mapper::toDto);
+        return searchStudents(null, null, null, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<StudentResponse> searchStudents(String keyword, UUID classId, StudentStatus status, Pageable pageable) {
-        return studentRepository.searchStudents(
-                keyword != null && !keyword.isBlank() ? keyword.trim() : null,
-                classId,
-                status,
-                pageable
-        ).map(mapper::toDto);
+        Specification<Student> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Predicate nameMatch = cb.like(cb.lower(root.get("fullName")), pattern);
+                Predicate codeMatch = cb.like(cb.lower(root.get("studentCode")), pattern);
+                Predicate emailMatch = cb.like(cb.lower(root.get("email")), pattern);
+                predicates.add(cb.or(nameMatch, codeMatch, emailMatch));
+            }
+
+            if (classId != null) {
+                predicates.add(cb.equal(root.get("currentClass").get("id"), classId));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            if (query != null && Long.class != query.getResultType() && long.class != query.getResultType()) {
+                root.fetch("currentClass", JoinType.LEFT);
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return studentRepository.findAll(spec, pageable).map(mapper::toDto);
     }
 
     @Override

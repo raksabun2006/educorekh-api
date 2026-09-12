@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +27,17 @@ public class ClassScheduleController {
         return scheduleService.createSchedule(request);
     }
 
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public List<ClassScheduleResponse> getAllSchedules(
+            @RequestParam(required = false) UUID academicYearId,
+            @RequestParam(required = false) UUID classId,
+            @RequestParam(required = false) UUID teacherId,
+            @RequestParam(required = false) DayOfWeek dayOfWeek
+    ) {
+        return scheduleService.getAllSchedules(academicYearId, classId, teacherId, dayOfWeek);
+    }
+
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public ClassScheduleResponse getScheduleById(@PathVariable UUID id) {
@@ -36,7 +48,7 @@ public class ClassScheduleController {
     @ResponseStatus(HttpStatus.OK)
     public List<ClassScheduleResponse> getClassSchedule(
             @PathVariable UUID classId,
-            @RequestParam UUID academicYearId
+            @RequestParam(required = false) UUID academicYearId
     ) {
         return scheduleService.getClassSchedule(classId, academicYearId);
     }
@@ -45,7 +57,7 @@ public class ClassScheduleController {
     @ResponseStatus(HttpStatus.OK)
     public List<ClassScheduleResponse> getTeacherSchedule(
             @PathVariable UUID teacherId,
-            @RequestParam UUID academicYearId
+            @RequestParam(required = false) UUID academicYearId
     ) {
         return scheduleService.getTeacherSchedule(teacherId, academicYearId);
     }

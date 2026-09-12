@@ -69,27 +69,53 @@ public class AttendanceController {
     @ResponseStatus(HttpStatus.OK)
     public List<AttendanceResponse> getClassAttendance(
             @PathVariable UUID classId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return attendanceService.getClassAttendance(classId, date);
+        LocalDate effectiveDate = date != null ? date : LocalDate.now();
+        return attendanceService.getClassAttendance(classId, effectiveDate);
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public Page<AttendanceResponse> getAttendanceByDate(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+    public Page<AttendanceResponse> getAttendances(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) UUID classId,
+            @RequestParam(required = false) UUID studentId,
+            @RequestParam(required = false) AttendanceStatus status,
             @ParameterObject Pageable pageable
     ) {
-        return attendanceService.getAttendanceByDate(date, pageable);
+        return attendanceService.getAttendances(date, startDate, endDate, classId, studentId, status, pageable);
+    }
+
+    @GetMapping("/summary")
+    @ResponseStatus(HttpStatus.OK)
+    public AttendanceSummaryResponse getOverallSummary(
+            @RequestParam(required = false) UUID classId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return attendanceService.getAttendanceSummary(classId, startDate, endDate);
     }
 
     @GetMapping("/summary/class/{classId}")
     @ResponseStatus(HttpStatus.OK)
     public AttendanceSummaryResponse getAttendanceSummary(
             @PathVariable UUID classId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
         return attendanceService.getAttendanceSummary(classId, startDate, endDate);
+    }
+
+    @GetMapping("/trends")
+    @ResponseStatus(HttpStatus.OK)
+    public List<AttendanceTrendResponse> getAttendanceTrends(
+            @RequestParam(required = false) UUID classId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return attendanceService.getAttendanceTrends(classId, startDate, endDate);
     }
 }

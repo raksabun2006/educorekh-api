@@ -5,13 +5,17 @@ import com.edu.kh.school.exception.ResourceNotFoundException;
 import com.edu.kh.school.features.subject.dto.CreateSubjectRequest;
 import com.edu.kh.school.features.subject.dto.SubjectResponse;
 import com.edu.kh.school.features.subject.dto.UpdateSubjectRequest;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -57,18 +61,30 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     @Transactional(readOnly = true)
     public Page<SubjectResponse> getAllSubjects(Pageable pageable) {
-        return subjectRepository.findAll(pageable)
-                .map(mapper::toDto);
+        return searchSubjects(null, null, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<SubjectResponse> searchSubjects(String keyword, SubjectStatus status, Pageable pageable) {
-        return subjectRepository.searchSubjects(
-                keyword != null && !keyword.isBlank() ? keyword.trim() : null,
-                status,
-                pageable
-        ).map(mapper::toDto);
+        Specification<Subject> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Predicate nameMatch = cb.like(cb.lower(root.get("name")), pattern);
+                Predicate codeMatch = cb.like(cb.lower(root.get("code")), pattern);
+                predicates.add(cb.or(nameMatch, codeMatch));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return subjectRepository.findAll(spec, pageable).map(mapper::toDto);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.edu.kh.school.exception.InvalidStatusException;
 import com.edu.kh.school.exception.ResourceNotFoundException;
 import com.edu.kh.school.features.academic.AcademicYear;
 import com.edu.kh.school.features.academic.AcademicYearRepository;
+import com.edu.kh.school.features.academic.AcademicYearStatus;
 import com.edu.kh.school.features.schedule.dto.ClassScheduleResponse;
 import com.edu.kh.school.features.schedule.dto.CreateScheduleRequest;
 import com.edu.kh.school.features.schedule.dto.UpdateScheduleRequest;
@@ -17,11 +18,16 @@ import com.edu.kh.school.features.subject.SubjectStatus;
 import com.edu.kh.school.features.teacher.Teacher;
 import com.edu.kh.school.features.teacher.TeacherRepository;
 import com.edu.kh.school.features.teacher.TeacherStatus;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,17 +76,17 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
 
         // Check conflicts
         if (scheduleRepository.existsTeacherScheduleConflict(
-                teacher.getId(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId(), null)) {
+                teacher.getId(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId())) {
             throw new BusinessException("Teacher " + teacher.getFullName() + " has an overlapping schedule on " + request.dayOfWeek());
         }
 
         if (scheduleRepository.existsClassScheduleConflict(
-                schoolClass.getId(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId(), null)) {
+                schoolClass.getId(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId())) {
             throw new BusinessException("Class " + schoolClass.getName() + " already has a schedule at this time on " + request.dayOfWeek());
         }
 
         if (scheduleRepository.existsRoomScheduleConflict(
-                request.room().trim(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId(), null)) {
+                request.room().trim(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId())) {
             throw new BusinessException("Room " + request.room() + " is already occupied at this time on " + request.dayOfWeek());
         }
 
@@ -101,12 +107,65 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ClassScheduleResponse> getAllSchedules(UUID academicYearId, UUID classId, UUID teacherId, DayOfWeek dayOfWeek) {
+        UUID effectiveAcademicYearId = academicYearId;
+        if (effectiveAcademicYearId == null && classId == null && teacherId == null) {
+            effectiveAcademicYearId = academicYearRepository.findByStatus(AcademicYearStatus.ACTIVE)
+                    .map(AcademicYear::getId)
+                    .orElse(null);
+        }
+
+        UUID finalYearId = effectiveAcademicYearId;
+        Specification<ClassSchedule> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (finalYearId != null) {
+                predicates.add(cb.equal(root.get("academicYear").get("id"), finalYearId));
+            }
+            if (classId != null) {
+                predicates.add(cb.equal(root.get("schoolClass").get("id"), classId));
+            }
+            if (teacherId != null) {
+                predicates.add(cb.equal(root.get("teacher").get("id"), teacherId));
+            }
+            if (dayOfWeek != null) {
+                predicates.add(cb.equal(root.get("dayOfWeek"), dayOfWeek));
+            }
+
+            if (query != null && Long.class != query.getResultType() && long.class != query.getResultType()) {
+                root.fetch("schoolClass", JoinType.LEFT);
+                root.fetch("subject", JoinType.LEFT);
+                root.fetch("teacher", JoinType.LEFT);
+                root.fetch("academicYear", JoinType.LEFT);
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return scheduleRepository.findAll(spec).stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getClassSchedule(UUID classId, UUID academicYearId) {
         if (!classRepository.existsById(classId)) {
             throw new ResourceNotFoundException("Class not found with id: " + classId);
         }
 
-        return scheduleRepository.findAllBySchoolClassIdAndAcademicYearId(classId, academicYearId).stream()
+        UUID effectiveYearId = academicYearId;
+        if (effectiveYearId == null) {
+            effectiveYearId = academicYearRepository.findByStatus(AcademicYearStatus.ACTIVE)
+                    .map(AcademicYear::getId)
+                    .orElse(null);
+        }
+
+        if (effectiveYearId != null) {
+            return scheduleRepository.findAllBySchoolClassIdAndAcademicYearId(classId, effectiveYearId).stream()
+                    .map(mapper::toDto)
+                    .toList();
+        }
+        return scheduleRepository.findAllBySchoolClassId(classId).stream()
                 .map(mapper::toDto)
                 .toList();
     }
@@ -118,7 +177,19 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
             throw new ResourceNotFoundException("Teacher not found with id: " + teacherId);
         }
 
-        return scheduleRepository.findAllByTeacherIdAndAcademicYearId(teacherId, academicYearId).stream()
+        UUID effectiveYearId = academicYearId;
+        if (effectiveYearId == null) {
+            effectiveYearId = academicYearRepository.findByStatus(AcademicYearStatus.ACTIVE)
+                    .map(AcademicYear::getId)
+                    .orElse(null);
+        }
+
+        if (effectiveYearId != null) {
+            return scheduleRepository.findAllByTeacherIdAndAcademicYearId(teacherId, effectiveYearId).stream()
+                    .map(mapper::toDto)
+                    .toList();
+        }
+        return scheduleRepository.findAllByTeacherId(teacherId).stream()
                 .map(mapper::toDto)
                 .toList();
     }
@@ -150,17 +221,17 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
 
         // Check conflicts excluding current schedule
-        if (scheduleRepository.existsTeacherScheduleConflict(
+        if (scheduleRepository.existsTeacherScheduleConflictExcluding(
                 teacher.getId(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId(), id)) {
             throw new BusinessException("Teacher " + teacher.getFullName() + " has an overlapping schedule on " + request.dayOfWeek());
         }
 
-        if (scheduleRepository.existsClassScheduleConflict(
+        if (scheduleRepository.existsClassScheduleConflictExcluding(
                 schoolClass.getId(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId(), id)) {
             throw new BusinessException("Class " + schoolClass.getName() + " already has a schedule at this time on " + request.dayOfWeek());
         }
 
-        if (scheduleRepository.existsRoomScheduleConflict(
+        if (scheduleRepository.existsRoomScheduleConflictExcluding(
                 request.room().trim(), request.dayOfWeek(), request.startTime(), request.endTime(), academicYear.getId(), id)) {
             throw new BusinessException("Room " + request.room() + " is already occupied at this time on " + request.dayOfWeek());
         }

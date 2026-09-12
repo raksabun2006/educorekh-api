@@ -97,9 +97,9 @@ class ClassScheduleServiceTest {
         when(teacherRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
         when(academicYearRepository.findById(academicYearId)).thenReturn(Optional.of(academicYear));
 
-        when(scheduleRepository.existsTeacherScheduleConflict(any(), any(), any(), any(), any(), any())).thenReturn(false);
-        when(scheduleRepository.existsClassScheduleConflict(any(), any(), any(), any(), any(), any())).thenReturn(false);
-        when(scheduleRepository.existsRoomScheduleConflict(any(), any(), any(), any(), any(), any())).thenReturn(false);
+        when(scheduleRepository.existsTeacherScheduleConflict(any(), any(), any(), any(), any())).thenReturn(false);
+        when(scheduleRepository.existsClassScheduleConflict(any(), any(), any(), any(), any())).thenReturn(false);
+        when(scheduleRepository.existsRoomScheduleConflict(any(), any(), any(), any(), any())).thenReturn(false);
 
         ClassSchedule schedule = mapper.toEntity(request, schoolClass, subject, teacher, academicYear);
         schedule.setId(UUID.randomUUID());
@@ -121,7 +121,7 @@ class ClassScheduleServiceTest {
         when(teacherRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
         when(academicYearRepository.findById(academicYearId)).thenReturn(Optional.of(academicYear));
 
-        when(scheduleRepository.existsTeacherScheduleConflict(any(), any(), any(), any(), any(), any())).thenReturn(true);
+        when(scheduleRepository.existsTeacherScheduleConflict(any(), any(), any(), any(), any())).thenReturn(true);
 
         assertThrows(BusinessException.class, () -> scheduleService.createSchedule(request));
     }

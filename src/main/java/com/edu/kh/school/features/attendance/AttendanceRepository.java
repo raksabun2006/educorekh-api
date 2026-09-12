@@ -3,15 +3,14 @@ package com.edu.kh.school.features.attendance;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
+public interface AttendanceRepository extends JpaRepository<Attendance, UUID>, JpaSpecificationExecutor<Attendance> {
 
     boolean existsByStudentIdAndDate(UUID studentId, LocalDate date);
 
@@ -25,13 +24,13 @@ public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
 
     List<Attendance> findAllBySchoolClassIdAndDateBetween(UUID classId, LocalDate startDate, LocalDate endDate);
 
+    List<Attendance> findAllBySchoolClassIdAndDateBetweenOrderByDateAsc(UUID classId, LocalDate startDate, LocalDate endDate);
+
+    List<Attendance> findAllByDateBetweenOrderByDateAsc(LocalDate startDate, LocalDate endDate);
+
     Page<Attendance> findAllByDate(LocalDate date, Pageable pageable);
 
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.schoolClass.id = :classId AND a.date BETWEEN :startDate AND :endDate AND a.status = :status")
-    long countByClassAndDateBetweenAndStatus(
-            @Param("classId") UUID classId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
-            @Param("status") AttendanceStatus status
-    );
+    long countBySchoolClassIdAndDateBetweenAndStatus(UUID classId, LocalDate startDate, LocalDate endDate, AttendanceStatus status);
+
+    long countByDateBetweenAndStatus(LocalDate startDate, LocalDate endDate, AttendanceStatus status);
 }

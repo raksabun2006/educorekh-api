@@ -12,13 +12,18 @@ import com.edu.kh.school.features.schoolclass.dto.UpdateClassRequest;
 import com.edu.kh.school.features.teacher.Teacher;
 import com.edu.kh.school.features.teacher.TeacherRepository;
 import com.edu.kh.school.features.teacher.TeacherStatus;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -70,19 +75,40 @@ public class SchoolClassServiceImpl implements SchoolClassService {
     @Override
     @Transactional(readOnly = true)
     public Page<ClassResponse> getAllClasses(Pageable pageable) {
-        return classRepository.findAll(pageable)
-                .map(mapper::toDto);
+        return searchClasses(null, null, null, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ClassResponse> searchClasses(String keyword, UUID academicYearId, ClassStatus status, Pageable pageable) {
-        return classRepository.searchClasses(
-                keyword != null && !keyword.isBlank() ? keyword.trim() : null,
-                academicYearId,
-                status,
-                pageable
-        ).map(mapper::toDto);
+        Specification<SchoolClass> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Predicate nameMatch = cb.like(cb.lower(root.get("name")), pattern);
+                Predicate roomMatch = cb.like(cb.lower(root.get("room")), pattern);
+                Predicate gradeMatch = cb.like(cb.lower(root.get("gradeLevel")), pattern);
+                predicates.add(cb.or(nameMatch, roomMatch, gradeMatch));
+            }
+
+            if (academicYearId != null) {
+                predicates.add(cb.equal(root.get("academicYear").get("id"), academicYearId));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            if (query != null && Long.class != query.getResultType() && long.class != query.getResultType()) {
+                root.fetch("academicYear", JoinType.LEFT);
+                root.fetch("classTeacher", JoinType.LEFT);
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return classRepository.findAll(spec, pageable).map(mapper::toDto);
     }
 
     @Override

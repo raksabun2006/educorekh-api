@@ -18,15 +18,20 @@ import com.edu.kh.school.features.schoolclass.SchoolClassRepository;
 import com.edu.kh.school.features.student.Student;
 import com.edu.kh.school.features.student.StudentRepository;
 import com.edu.kh.school.features.student.StudentStatus;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -83,12 +88,34 @@ public class AdmissionServiceImpl implements AdmissionService {
     public Page<AdmissionApplicationResponse> searchApplications(
             String keyword, UUID academicYearId, AdmissionStatus status, Pageable pageable
     ) {
-        return admissionRepository.searchApplications(
-                keyword != null && !keyword.isBlank() ? keyword.trim() : null,
-                academicYearId,
-                status,
-                pageable
-        ).map(mapper::toDto);
+        Specification<AdmissionApplication> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Predicate nameMatch = cb.like(cb.lower(root.get("applicantFullName")), pattern);
+                Predicate numMatch = cb.like(cb.lower(root.get("applicationNumber")), pattern);
+                Predicate emailMatch = cb.like(cb.lower(root.get("applicantEmail")), pattern);
+                predicates.add(cb.or(nameMatch, numMatch, emailMatch));
+            }
+
+            if (academicYearId != null) {
+                predicates.add(cb.equal(root.get("academicYear").get("id"), academicYearId));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            if (query != null && Long.class != query.getResultType() && long.class != query.getResultType()) {
+                root.fetch("academicYear", JoinType.LEFT);
+                root.fetch("createdStudent", JoinType.LEFT);
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return admissionRepository.findAll(spec, pageable).map(mapper::toDto);
     }
 
     @Override

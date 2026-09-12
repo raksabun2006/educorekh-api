@@ -9,13 +9,17 @@ import com.edu.kh.school.features.student.Student;
 import com.edu.kh.school.features.student.StudentMapper;
 import com.edu.kh.school.features.student.StudentRepository;
 import com.edu.kh.school.features.student.dto.StudentResponse;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -64,18 +68,35 @@ public class ParentServiceImpl implements ParentService {
     @Override
     @Transactional(readOnly = true)
     public Page<ParentResponse> getAllParents(Pageable pageable) {
-        return parentRepository.findAll(pageable)
-                .map(mapper::toDto);
+        return searchParents(null, null, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ParentResponse> searchParents(String keyword, ParentStatus status, Pageable pageable) {
-        return parentRepository.searchParents(
-                keyword != null && !keyword.isBlank() ? keyword.trim() : null,
-                status,
-                pageable
-        ).map(mapper::toDto);
+        Specification<Parent> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Predicate nameMatch = cb.like(cb.lower(root.get("fullName")), pattern);
+                Predicate emailMatch = cb.like(cb.lower(root.get("email")), pattern);
+                Predicate phoneMatch = cb.like(cb.lower(root.get("phone")), pattern);
+                predicates.add(cb.or(nameMatch, emailMatch, phoneMatch));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            if (query != null && Long.class != query.getResultType() && long.class != query.getResultType()) {
+                root.fetch("children", JoinType.LEFT);
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return parentRepository.findAll(spec, pageable).map(mapper::toDto);
     }
 
     @Override

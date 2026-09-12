@@ -22,5 +22,17 @@ public interface AttendanceService {
 
     Page<AttendanceResponse> getAttendanceByDate(LocalDate date, Pageable pageable);
 
+    Page<AttendanceResponse> getAttendances(
+            LocalDate date,
+            LocalDate startDate,
+            LocalDate endDate,
+            UUID classId,
+            UUID studentId,
+            AttendanceStatus status,
+            Pageable pageable
+    );
+
     AttendanceSummaryResponse getAttendanceSummary(UUID classId, LocalDate startDate, LocalDate endDate);
+
+    List<AttendanceTrendResponse> getAttendanceTrends(UUID classId, LocalDate startDate, LocalDate endDate);
 }
